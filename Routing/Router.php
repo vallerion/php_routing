@@ -68,6 +68,14 @@ class Router extends Singleton{
         );
     }
 
+    public function any(string $pattern, callable $callback) {
+        $this->pushRoute(
+            [ Request::METHOD_DELETE, Request::METHOD_PATCH, Request::METHOD_PUT, Request::METHOD_POST, Request::METHOD_GET, Request::METHOD_HEAD ],
+            $pattern,
+            $callback
+        );
+    }
+
     protected function pushRoute(array $methods, string $pattern, callable $callback) {
 
         $route = new Route($methods, $pattern, $callback);
