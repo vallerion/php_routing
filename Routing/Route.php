@@ -3,7 +3,7 @@
 namespace Routing;
 
 
-use Helper\Helper;
+use Helpers\Helper;
 use Http\Request;
 
 /**
@@ -92,9 +92,7 @@ class Route{
         $regexp = "|^$patternToRegexp$|i";
 
         $uri = implode('/', array_filter(explode('/', $uri), 'mb_strlen'));
-
-//        Helper::dumper($regexp);
-//        Helper::dumperDie($uri);
+        $uri = $uri === '' ? '/' : $uri;
 
         if( ! preg_match($regexp, $uri, $paramValues))
             return false;
