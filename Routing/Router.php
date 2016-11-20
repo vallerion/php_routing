@@ -49,7 +49,7 @@ class Router extends Singleton{
         
         foreach ($this->routes as $key => $route){
 
-            if(in_array($this->request->getMethod(), $route->getMethods()) && $route->comparePattern($this->request->getUriFull())) {
+            if(in_array($this->request->getMethod(), $route->getMethods()) && $route->comparePattern($this->request->getUri())) {
                 $dispatch = $route->dispatch();
 
                 if($dispatch)

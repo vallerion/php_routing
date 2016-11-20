@@ -88,7 +88,7 @@ class Route{
             str_replace(')', ')?', (string)$this->pattern)
         );
 
-        $patternToRegexp = str_replace('/', '/?', $patternToRegexp);
+//        $patternToRegexp = str_replace('/', '/?', $patternToRegexp);
         $regexp = "|^$patternToRegexp$|i";
 
         $uri = implode('/', array_filter(explode('/', $uri), 'mb_strlen'));
