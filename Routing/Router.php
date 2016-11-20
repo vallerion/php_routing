@@ -36,6 +36,38 @@ class Router extends Singleton{
         );
     }
 
+    public function post(string $pattern, callable $callback) {
+        $this->pushRoute(
+            [ Request::METHOD_POST ],
+            $pattern,
+            $callback
+        );
+    }
+
+    public function put(string $pattern, callable $callback) {
+        $this->pushRoute(
+            [ Request::METHOD_PUT ],
+            $pattern,
+            $callback
+        );
+    }
+
+    public function patch(string $pattern, callable $callback) {
+        $this->pushRoute(
+            [ Request::METHOD_PATCH ],
+            $pattern,
+            $callback
+        );
+    }
+
+    public function delete(string $pattern, callable $callback) {
+        $this->pushRoute(
+            [ Request::METHOD_DELETE ],
+            $pattern,
+            $callback
+        );
+    }
+
     protected function pushRoute(array $methods, string $pattern, callable $callback) {
 
         $route = new Route($methods, $pattern, $callback);
@@ -44,8 +76,6 @@ class Router extends Singleton{
     }
 
     public function run() {
-
-//        Helper::dumperDie($this->request);
         
         foreach ($this->routes as $key => $route){
 
