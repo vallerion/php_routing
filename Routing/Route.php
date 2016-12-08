@@ -93,7 +93,6 @@ class Route{
         $regexp = str_replace('|^/', '|^', $regexp);
 
         $uri = implode('/', array_filter(explode('/', $uri), 'mb_strlen'));
-        $uri = $uri === '' ? '/' : "$uri";
 
         if( ! preg_match($regexp, $uri, $paramValues))
             return false;
