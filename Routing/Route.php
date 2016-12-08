@@ -84,7 +84,7 @@ class Route{
 
         $patternToRegexp = preg_replace_callback(
             '|{([\w]+)}|',
-            array($this, 'urlToParameters'),
+            [ $this, 'urlToParameters' ],
             str_replace(')', ')?', (string)$this->pattern)
         );
 
@@ -92,7 +92,7 @@ class Route{
         $regexp = "|^$patternToRegexp$|i";
 
         $uri = implode('/', array_filter(explode('/', $uri), 'mb_strlen'));
-        $uri = $uri === '' ? '/' : $uri;
+        $uri = $uri === '' ? '/' : "/$uri";
 
         if( ! preg_match($regexp, $uri, $paramValues))
             return false;
