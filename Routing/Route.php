@@ -90,9 +90,10 @@ class Route{
 
 //        $patternToRegexp = str_replace('/', '/?', $patternToRegexp);
         $regexp = "|^$patternToRegexp$|i";
+        $regexp = str_replace('|^/', '|^', $regexp);
 
         $uri = implode('/', array_filter(explode('/', $uri), 'mb_strlen'));
-        $uri = $uri === '' ? '/' : "/$uri";
+        $uri = $uri === '' ? '/' : "$uri";
 
         if( ! preg_match($regexp, $uri, $paramValues))
             return false;
