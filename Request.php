@@ -1,15 +1,17 @@
 <?php
 
-namespace Routing\Http;
+namespace Framework\Http;
 
-use Routing\Helpers\Helper;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Message\UriInterface;
+use Framework\Helpers\Helper;
+use Framework\Psr\Http\Message\ServerRequestInterface;
+use Framework\Psr\Http\Message\UriInterface;
+use Framework\Traits\Singleton;
 
 use InvalidArgumentException;
 
-//class Request extends Message implements ServerRequestInterface {
 class Request extends Message implements ServerRequestInterface {
+
+    use Singleton;
 
     const METHOD_HEAD = 'HEAD';
     const METHOD_GET = 'GET';
@@ -37,7 +39,7 @@ class Request extends Message implements ServerRequestInterface {
 
 //    protected $body;
 
-    protected $cookies;
+    protected $cookie;
 
     protected $session;
 
@@ -46,7 +48,7 @@ class Request extends Message implements ServerRequestInterface {
     protected $queryParams;
 
 
-    public function __construct(array $userHeaders = []) {
+    protected function __construct(array $userSettings = []) {
 
 
         $this->headers = $this->makeDefaultHeaders();
@@ -54,8 +56,11 @@ class Request extends Message implements ServerRequestInterface {
 
         $this->setQueryData();
 
+//        Helper::dumper($this->uploadFiles);
+//        Helper::dumperDie($this->headers);
+
         if( ! empty($userSettings))
-            $this->headers = array_merge($this->headers, $userHeaders);
+            $this->headers = array_merge($this->headers, $userSettings);
 
     }
 
@@ -69,11 +74,11 @@ class Request extends Message implements ServerRequestInterface {
 
         $this->headers['REQUEST_URI'] = str_replace([$this->headers['QUERY_STRING'], '?'], '', $this->headers['REQUEST_URI_FULL']); // example.com/page/?a=b&c=d -> /page/
 
-        $this->headers['SERVER_PORT'] = isset($_SERVER['SERVER_PORT']) ? $_SERVER['SERVER_PORT'] : 80; // $_SERVER['SERVER_PORT'] ?? 80;
+        $this->headers['SERVER_PORT'] = $_SERVER['SERVER_PORT'] ?? 80;
 
         $this->headers['SCRIPT_NAME'] = $_SERVER['SCRIPT_NAME'];
 
-        $this->headers['SERVER_SOFTWARE'] = isset($_SERVER['SERVER_SOFTWARE']) ? $_SERVER['SERVER_SOFTWARE'] : null;// $_SERVER['SERVER_SOFTWARE'] ?? '';
+        $this->headers['SERVER_SOFTWARE'] = $_SERVER['SERVER_SOFTWARE'] ?? '';
 
         $this->headers['CONTENT_LENGTH'] = $_SERVER['CONTENT_LENGTH'];
 
@@ -118,11 +123,11 @@ class Request extends Message implements ServerRequestInterface {
 
         $this->queryParams = $this->headers['QUERY_STRING'];
 
-        $this->setBody($input);
+        $this->body = $this->setBody($input);
 
         $this->fields = array_diff($_REQUEST, $_COOKIE); // all but cookie
 
-        $this->cookies = $_COOKIE;
+        $this->cookie = $_COOKIE;
 
         $this->uploadFiles = $_FILES; // todo: create FILE class
 
@@ -131,33 +136,43 @@ class Request extends Message implements ServerRequestInterface {
 
     }
 
-    public function setBody($input) {
+    protected function setBody($input) {
 
         if($this->isJson())
-            $this->body = json_decode($input, true);
+            return json_decode($input, true);
         else if($this->isXml()) {
             $backup = libxml_disable_entity_loader(true);
             $result = simplexml_load_string($input);
             libxml_disable_entity_loader($backup);
-            $this->body = $result;
+            return $result;
         }
         else if ($this->isMedia()){
             parse_str($input, $data);
-            $this->body = $data;
+            return $data;
         }
 
-        $this->body = $input;
+        return $input;
     }
 
-    public function uri() {
+    public function headers() {
+        
+        if(empty($this->headers)){
+            $this->headers = $this->makeDefaultHeaders();
+            $this->setCurrentHeaders();
+        }
+
+        return $this->headers;
+    }
+
+    public function getUri() {
         return $this->headers['REQUEST_URI'];
     }
 
-    public function uriFull() {
+    public function getUriFull() : string {
         return self::$headers['REQUEST_URI_FULL'];
     }
 
-    public function method() {
+    public function getMethod() : string {
         return $this->headers['REQUEST_METHOD'];
     }
 
@@ -179,89 +194,129 @@ class Request extends Message implements ServerRequestInterface {
         return stristr($this->headers['CONTENT_TYPE'], 'multipart/form-data');
     }
 
+
     public function __get($name) {
         return isset($this->fields[$name]) ?
             $this->fields[$name] : null;
     }
 
-    public function getServerParams() {
-        return $this->headers;
+
+    public function getRequestTarget() {
+        return $this->getUri();
     }
 
-    public function getCookieParams() {
-        return $this->cookies;
+    public function withRequestTarget($requestTarget) {
+        if (preg_match('#\s#', $requestTarget)) {
+            throw new InvalidArgumentException(
+                'Invalid request target provided; must be a string and cannot contain whitespace'
+            );
+        }
+//        $clone = clone $this;
+        $this->requestTarget = $requestTarget;
+
+        return $this;
     }
 
-    public function withCookieParams(array $cookies) {
+    public function withMethod($method) {
 
-        $clone = clone $this;
-        $clone->cookies = $cookies;
+        $method = $this->normalizeMethod($method);
+        $this->method = $method;
 
-        return $clone;
+        return $this;
     }
 
-    public function getQueryParams() {
-        return $this->queryParams;
+    protected function normalizeMethod($method) {
+
+        if ($method === null) {
+            return $method;
+        }
+
+        if ( ! is_string($method)) {
+            throw new InvalidArgumentException(sprintf(
+                'Unsupported HTTP method; must be a string, received %s',
+                (is_object($method) ? get_class($method) : gettype($method))
+            ));
+        }
+
+        $method = strtoupper($method);
+        if ( ! in_array($method, $this->validMethods)) {
+            throw new InvalidArgumentException(sprintf(
+                'Unsupported HTTP method "%s" provided',
+                $method
+            ));
+        }
+
+        return $method;
     }
 
-    public function withQueryParams(array $query) {
-
-        $clone = clone $this;
-
-        $clone->queryParams = $query;
-
-        return $clone;
+    public function withUri(UriInterface $uri, $preserveHost = false) {
+        // TODO: Implement withUri() method.
     }
 
     public function getUploadedFiles() {
         return $this->uploadFiles;
     }
 
+    public function getCookieParams() {
+        return $this->cookie;
+    }
+    
+    public function cookie() {
+        // TODO: must return Cookie object
+    }
+
+    public function session() {
+        // todo: must return Session object
+    }
+
+    public function getQueryParams() {
+        return $this->queryParams;
+    }
+
+
+
+
+
+    public function getServerParams() {
+        // TODO: Implement getServerParams() method.
+    }
+
+    public function withCookieParams(array $cookies) {
+        // TODO: Implement withCookieParams() method.
+    }
+
+
+
+    public function withQueryParams(array $query) {
+        // TODO: Implement withQueryParams() method.
+    }
+
     public function withUploadedFiles(array $uploadedFiles) {
-
-        $clone = clone $this;
-
-        $clone->uploadFiles = $uploadedFiles;
-
-        return $clone;
+        // TODO: Implement withUploadedFiles() method.
     }
 
     public function getParsedBody() {
-        // TODO: parse?
-        return $this->body;
+        // TODO: Implement getParsedBody() method.
     }
 
     public function withParsedBody($data) {
-
-        $clone = clone $this;
-        $clone->body = $data;
-
-        return $clone;
+        // TODO: Implement withParsedBody() method.
     }
 
     public function getAttributes() {
-        return $this->fields;
+        // TODO: Implement getAttributes() method.
     }
 
     public function getAttribute($name, $default = null) {
-        return isset($this->fields[$name]) ? $this->fields[$name] : $default;
+        // TODO: Implement getAttribute() method.
     }
 
     public function withAttribute($name, $value) {
-
-        $clone = clone $this;
-        $clone->fields[$name] = $value;
-
-        return $clone;
+        // TODO: Implement withAttribute() method.
     }
 
     public function withoutAttribute($name) {
-
-        $clone = clone $this;
-        if(isset($clone->fields[$name]))
-            unset($clone->fields[$name]);
-
-        return $clone;
+        // TODO: Implement withoutAttribute() method.
     }
 
 
