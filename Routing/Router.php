@@ -1,20 +1,15 @@
 <?php
 
-namespace Routing;
+namespace Framework\Http\Routing;
 
-//require_once 'RouteCollection.php';
-require __DIR__ . '/Helpers/Helper.php';
-require __DIR__ . '/Support/Singleton.php';
-require __DIR__ . '/Http/Request.php';
-require __DIR__ . '/Http/Response.php';
-require __DIR__ . '/Route.php';
+use Framework\Helpers\Helper;
+use Framework\Http\Request;
+use Framework\Http\Response;
+use Framework\Traits\Singleton;
 
-use Helpers\Helper;
-use Http\Request;
-use Http\Response;
-use Support\Singleton;
+class Router {
 
-class Router extends Singleton{
+    use Singleton;
 
     protected $routes = [];
 

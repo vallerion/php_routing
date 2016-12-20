@@ -1,10 +1,10 @@
 <?php
 
-namespace Routing;
+namespace Framework\Http\Routing;
 
 
-use Helpers\Helper;
-use Http\Request;
+use Framework\Helpers\Helper;
+use Framework\Http\Request;
 
 /**
  * Class Route

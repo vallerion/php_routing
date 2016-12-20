@@ -1,0 +1,11 @@
+{
+  "require": {
+    "psr/http-message": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Routing\\": "Routing"
+    }
+  }
+
+}
